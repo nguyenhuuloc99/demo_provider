@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:from_flutter/model/user.dart';
-import 'package:from_flutter/provider/login_provider.dart';
-import 'package:from_flutter/shared/share_prf.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:from_flutter/utils/validate.dart';
 import 'package:provider/provider.dart';
+
+import '../provider/auth_provider.dart';
+import '../widget/title_input.dart';
+import 'home.dart';
+import 'register_screen.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -25,14 +29,17 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     final formKey = GlobalKey<FormState>();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    final auth = Provider.of<LoginProvider>(context, listen: false);
-    Future<void> login() async {
+    void login()  {
       if (formKey.currentState!.validate()) {
-        Map<String, dynamic> data =
-            await auth.login(_email!.text, _password!.text);
-        var user = User.fromJson(data);
-        UserShared.saveUser(user.email, user.password);
+         auth.login(_email!.text, _password!.text);
+        if (auth.loginStaus == AuthState.success) {
+          Navigator.pushReplacementNamed(context, Home.routeName);
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Khong thanh cong")));
+        }
       }
     }
 
@@ -50,17 +57,11 @@ class _LoginState extends State<Login> {
                   const SizedBox(
                     height: 5,
                   ),
-                  TextFormField(
+                  TitleInput(
+                    hintText: "Email",
                     controller: _email,
-                    validator: (value) {
-                      return validateForm(value);
-                    },
-                    decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2)),
-                        hintText: "Password"),
+                    validator: Validator.validateForm,
+                    prefixIcon: const Icon(Icons.email),
                   ),
                   const SizedBox(
                     height: 10,
@@ -68,36 +69,33 @@ class _LoginState extends State<Login> {
                   const SizedBox(
                     height: 5,
                   ),
-                  TextFormField(
-                    controller: _password,
-                    validator: (value) {
-                      return validateForm(value);
-                    },
-                    autofocus: false,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        hintText: "Password",
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.black, width: 2))),
-                  ),
+                  TitleInput(
+                      hintText: "Password",
+                      controller: _password,
+                      validator: Validator.validateForm,
+                      prefixIcon: const Icon(Icons.lock)),
                   const SizedBox(
                     height: 10,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         "Quên mật khẩu?",
                         style: TextStyle(color: Colors.blue),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         width: 10,
                       ),
-                      Text(
-                        "Đăng kí!!",
-                        style: TextStyle(color: Colors.blue),
+                      InkWell(
+                        onTap: () {
+                          Navigator.pushNamed(
+                              context, RegisterScreen.routeName);
+                        },
+                        child: const Text(
+                          "Đăng kí!!",
+                          style: TextStyle(color: Colors.blue),
+                        ),
                       ),
                     ],
                   ),
@@ -109,7 +107,7 @@ class _LoginState extends State<Login> {
                     child: ElevatedButton(
                       onPressed: login,
                       style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(150, 40), //////// HERE
+                          minimumSize: const Size(150, 40),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12))),
                       child: const Text(
@@ -121,12 +119,5 @@ class _LoginState extends State<Login> {
                 ],
               ),
             )));
-  }
-
-  String? validateForm(String? value) {
-    if (value == null || value.isEmpty) {
-      return "Không để trống !!";
-    }
-    return null;
   }
 }
